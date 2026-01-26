@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  adk-agent:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ${HOME}/.config/gcloud/application_default_credentials.json:/app/credentials/key.json
+    environment:
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/key.json
