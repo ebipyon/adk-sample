@@ -1,6 +1,12 @@
 # Audio Transcription Agent
 
-このアプリケーションは、Google Cloud Speech-to-Text API を Streamlit で使用するサンプルアプリケーションです。ユーザーがアップロードした音声ファイルを適切な形式に変換し、文字起こし結果を表示します。
+このアプリケーションは、Google Cloud Speech-to-Text API と **Local OpenAI Whisper** を使用して音声の書き起こしを行い、結果を比較（Diff表示）できるサンプルアプリケーションです。
+
+## 特長
+
+*   **Dual Transcription**: Google Cloud STT と Local Whisper の両方で同時に書き起こしを実行します。
+*   **Diff Analysis**: 2つの書き起こし結果の差分を視覚的に表示し、精度の比較が容易です。
+*   **Local Whisper**: ローカル環境（Dockerコンテナ内）で Whisper モデルを動作させます。モデルサイズ（tiny, base, small, medium, large）を選択可能です。
 
 ## 前提条件
 
@@ -19,27 +25,20 @@
     ```bash
     gcloud auth application-default login
     ```
-    このコマンドを実行するとブラウザが開き、ログインを求められます。認証が完了すると、認証用JSONファイルがローカルマシン（通常は `~/.config/gcloud/application_default_credentials.json`）に保存されます。
-
-4.  **クォータプロジェクトの設定**（プロンプトが表示された場合や、クォータエラーが発生した場合）:
+4.  **クォータプロジェクトの設定**（必要な場合）:
     ```bash
     gcloud auth application-default set-quota-project <YOUR_PROJECT_ID>
     ```
 
 ### 2. Docker の設定
 
-`docker-compose.yml` は、ローカルの gcloud 認証情報をコンテナ内にマウントするように設定されています。
-
-`docker-compose.yml` の9行目が、あなたの ADC ファイルのパスを正しく指していることを確認してください（デフォルト設定では標準的なパスを使用しています）:
-
-```yaml
-    volumes:
-      - ${HOME}/.config/gcloud/application_default_credentials.json:/app/credentials/key.json
-```
+`docker-compose.yml` でローカルの gcloud 認証情報をマウントしています。
+パスが正しいか確認してください: `volumes: - ${HOME}/.config/gcloud/application_default_credentials.json:/app/credentials/key.json`
 
 ## アプリケーションの実行
 
 1.  **コンテナのビルドと起動**:
+    WhisperやPyTorchなどのライブラリをインストールするため、初回ビルドには時間がかかります。
     ```bash
     docker compose up --build
     ```
@@ -49,18 +48,20 @@
 
 ## 使い方
 
-1.  **"Browse files"** をクリックして音声ファイルをアップロードします（対応フォーマット: wav, mp3, m4a, ogg）。
-2.  **"Transcribe"** ボタンをクリックします。
-3.  アプリケーションは以下の処理を行います:
-    - 音声を Google Cloud STT で必要な形式（Linear16, 16kHz, モノラル）に変換します。
-    - 音声データを Speech-to-Text API に送信します。
-    - 文字起こしされたテキストを画面下部のテキストエリアに表示します。
+1.  **"Browse files"** で音声ファイルをアップロードします。
+2.  **"Whisper Model Size"** で Whisper のモデルサイズを選択します（デフォルト: small）。
+    *   大きなモデルほど精度は高いですが、処理時間が長くなります（CPU実行のため）。
+3.  **"Transcribe"** ボタンをクリックします。
+4.  以下の順で処理が行われます:
+    *   Google Cloud STT で書き起こし
+    *   Local Whisper で書き起こし
+    *   **Results Comparison**: 両方の結果を左右に並べて表示
+    *   **Diff Analysis**: 差異をハイライト表示
 
 ## トラブルシューティング
 
-- **`403 Cloud Speech-to-Text API has not been used...`**:
-    - Google Cloud Console で API が有効になっているか確認してください。
-    - 有効化してから変更が反映されるまで数分かかる場合があります。
-- **`File /app/credentials/key.json was not found`**:
-    - `gcloud auth application-default login` を実行したか確認してください。
-    - `docker-compose.yml` のボリュームマウント設定が、実際の認証ファイルの場所と一致しているか確認してください。
+- **Dockerのメモリ不足**: WhisperのLargeモデルを使用する場合、Dockerに割り当てられたメモリが不足するとクラッシュする可能性があります。Docker Desktopの設定でメモリ割り当てを増やしてください。
+- **処理が遅い**: ローカルでのWhisper実行はCPUに依存するため、長い音声データの処理には時間がかかります。
+
+---
+**Note**: `credentials/` ディレクトリは gitignore されています。
