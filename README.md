@@ -63,5 +63,43 @@
 - **Dockerのメモリ不足**: WhisperのLargeモデルを使用する場合、Dockerに割り当てられたメモリが不足するとクラッシュする可能性があります。Docker Desktopの設定でメモリ割り当てを増やしてください。
 - **処理が遅い**: ローカルでのWhisper実行はCPUに依存するため、長い音声データの処理には時間がかかります。
 
+## Cloud Run へのデプロイ
+
+### 前提条件
+- `gcloud` CLI がインストール・認証済みであること
+- プロジェクトIDを設定済みであること
+
+### デプロイ手順
+
+```bash
+# 1. 必要なAPIを有効化
+gcloud services enable artifactregistry.googleapis.com run.googleapis.com speech.googleapis.com
+
+# 2. サービスアカウントの作成
+gcloud iam service-accounts create adk-transcription-sa --display-name="ADK Transcription SA"
+
+# 3. 権限付与
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+    --member="serviceAccount:adk-transcription-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/speech.client"
+
+# 4. Artifact Registry にリポジトリ作成
+gcloud artifacts repositories create adk-sample --repository-format=docker --location=asia-northeast1
+
+# 5. イメージのビルド＆プッシュ
+gcloud builds submit --tag asia-northeast1-docker.pkg.dev/YOUR_PROJECT_ID/adk-sample/transcription-agent:latest
+
+# 6. Cloud Run へデプロイ
+gcloud run deploy adk-transcription-agent \
+    --image asia-northeast1-docker.pkg.dev/YOUR_PROJECT_ID/adk-sample/transcription-agent:latest \
+    --platform managed --region asia-northeast1 \
+    --memory 4Gi --cpu 2 --timeout 600 \
+    --allow-unauthenticated \
+    --service-account adk-transcription-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com
+```
+
+> **Note**: `YOUR_PROJECT_ID` は実際のプロジェクトIDに置き換えてください。
+
 ---
 **Note**: `credentials/` ディレクトリは gitignore されています。
+

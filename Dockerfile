@@ -14,8 +14,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY . .
 
-# Expose Streamlit port
+# Expose Streamlit port (Cloud Run uses PORT env var)
 EXPOSE 8501
 
-# Run Streamlit
-CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0"]
+# Default PORT for local dev, Cloud Run will override
+ENV PORT=8501
+
+# Run Streamlit with dynamic port
+CMD streamlit run app.py --server.address=0.0.0.0 --server.port=$PORT

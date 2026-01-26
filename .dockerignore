@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Local credentials (DO NOT deploy)
+credentials/
+
+# Docker compose (local only)
+docker-compose.yml
+
+# Documentation
+*.md
+!README.md
+
+# Tests
+tests/
+*_test.py
