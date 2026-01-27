@@ -101,20 +101,64 @@ gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
     --member="serviceAccount:adk-transcription-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
     --role="roles/speech.client"
 
-# 4. Artifact Registry にリポジトリ作成
-gcloud artifacts repositories create adk-sample --repository-format=docker --location=asia-northeast1
+## アーキテクチャ構成 (Nginx + Streamlit)
 
-# 5. イメージのビルド＆プッシュ
-gcloud builds submit --tag asia-northeast1-docker.pkg.dev/YOUR_PROJECT_ID/adk-sample/transcription-agent:latest
+Cloud Run での大きなファイルアップロード (32MB以上) と HTTP/2 通信をサポートするため、以下のような構成をとっています。
 
-# 6. Cloud Run へデプロイ
-gcloud run deploy adk-transcription-agent \
-    --image asia-northeast1-docker.pkg.dev/YOUR_PROJECT_ID/adk-sample/transcription-agent:latest \
-    --platform managed --region asia-northeast1 \
-    --memory 4Gi --cpu 2 --timeout 600 \
-    --allow-unauthenticated \
-    --service-account adk-transcription-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com \
-    --set-env-vars GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID,GCS_BUCKET_NAME=YOUR_BUCKET_NAME
+*   **Nginx (Port 8501)**:
+    *   **役割**: エントリーポイント。Cloud Run からの **HTTP/2** リクエストを受け付けます。
+    *   **理由**: Cloud Run の 32MB 制限を回避するには HTTP/2 が必須ですが、Streamlit はネイティブで HTTP/2 をサポートしていないため、Nginx が前段でこれを受け持ちます。
+*   **Streamlit (Port 8502)**:
+    *   **役割**: アプリケーションロジックとUI。Nginx から HTTP/1.1 で転送されたリクエストを処理します。
+    *   **理由**: Whisper による書き起こし処理や画面描画に専念します。
+
+**データの流れ**:
+`[User] --(HTTP/2)--> [Cloud Run] --(HTTP/2)--> [Nginx] --(HTTP/1.1)--> [Streamlit]`
+
+## セットアップ手順
+
+### 1. Google Cloud の設定
+(変更なし: 省略)
+
+### 2. 環境変数の設定
+(変更なし: 省略)
+
+### 3. Google Cloud 認証キー (ローカル実行用)
+ローカルで Docker を実行する場合、サービスアカウントキーが必要です。
+1. GCP コンソールからサービスアカウントキー (JSON) をダウンロードします。
+2. プロジェクトルートの `credentials/` ディレクトリに配置します。
+   `credentials/key.json`
+
+## アプリケーションの実行
+
+1.  **コンテナのビルドと起動**:
+    (初回はGPU対応のベースイメージをプルするため時間がかかります)
+    ```bash
+    docker compose up --build
+    ```
+
+2.  **アプリケーションへのアクセス**:
+    [http://localhost:8501](http://localhost:8501)
+
+## Cloud Run へのデプロイ (GPU有効化済み)
+
+GPU (NVIDIA L4) を利用して Whisper を高速化するためのデプロイ用スクリプト `deploy.sh` を用意しています。
+
+### 手順
+
+1.  `deploy.sh` を実行します:
+    ```bash
+    ./deploy.sh
+    ```
+    (注意: 初回デプロイ時はイメージサイズが大きいため時間がかかります)
+
+2.  デプロイ完了後、表示された URL にアクセスします。
+
+### GPU の確認
+書き起こし実行時、ログに `Using device: cuda` と表示されていれば GPU が使用されています。
+
+---
+**Note**: 手動でデプロイする場合は、`--use-http2` (32MB制限回避) と `--gpu 1` (GPU有効化) のフラグが必須です。詳細は `deploy.sh` を参照してください。
 ```
 
 > **Note**: `YOUR_PROJECT_ID` と `YOUR_BUCKET_NAME` は実際の値に置き換えてください。
