@@ -1,7 +1,9 @@
 from google.cloud import storage
 import os
 
-PROJECT_ID = "speech-to-text-sample-485505"
+PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT")
+if not PROJECT_ID:
+    raise ValueError("GOOGLE_CLOUD_PROJECT environment variable must be set")
 
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
     """Uploads a file to the bucket."""

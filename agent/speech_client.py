@@ -3,7 +3,9 @@ from pydub import AudioSegment
 import os
 from utils.gcs_helper import upload_blob, delete_blob
 
-GCS_BUCKET_NAME = "speech-to-text-sample-485505-audio-temp"
+GCS_BUCKET_NAME = os.environ.get("GCS_BUCKET_NAME")
+if not GCS_BUCKET_NAME:
+    raise ValueError("GCS_BUCKET_NAME environment variable must be set")
 
 def transcribe_audio(audio_file_path):
     """

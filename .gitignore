@@ -36,6 +36,7 @@ env/
 # Environment Variables
 .env
 .env.*
+!.env.example
 
 # Application Specific
 credentials/

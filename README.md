@@ -30,7 +30,25 @@
     gcloud auth application-default set-quota-project <YOUR_PROJECT_ID>
     ```
 
-### 2. Docker の設定
+### 2. 環境変数の設定
+
+`.env.example` をコピーして `.env` ファイルを作成し、必要な環境変数を設定します:
+
+```bash
+cp .env.example .env
+```
+
+`.env` ファイルを編集して、以下の値を設定してください:
+
+```bash
+GOOGLE_CLOUD_PROJECT=your-project-id
+GCS_BUCKET_NAME=your-bucket-name
+```
+
+- `GOOGLE_CLOUD_PROJECT`: Google Cloud のプロジェクトID
+- `GCS_BUCKET_NAME`: 長い音声ファイル用の一時ストレージとして使用するGCSバケット名
+
+### 3. Docker の設定
 
 `docker-compose.yml` でローカルの gcloud 認証情報をマウントしています。
 パスが正しいか確認してください: `volumes: - ${HOME}/.config/gcloud/application_default_credentials.json:/app/credentials/key.json`
@@ -95,10 +113,11 @@ gcloud run deploy adk-transcription-agent \
     --platform managed --region asia-northeast1 \
     --memory 4Gi --cpu 2 --timeout 600 \
     --allow-unauthenticated \
-    --service-account adk-transcription-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com
+    --service-account adk-transcription-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com \
+    --set-env-vars GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID,GCS_BUCKET_NAME=YOUR_BUCKET_NAME
 ```
 
-> **Note**: `YOUR_PROJECT_ID` は実際のプロジェクトIDに置き換えてください。
+> **Note**: `YOUR_PROJECT_ID` と `YOUR_BUCKET_NAME` は実際の値に置き換えてください。
 
 ---
 **Note**: `credentials/` ディレクトリは gitignore されています。

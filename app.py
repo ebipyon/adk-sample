@@ -1,10 +1,10 @@
 import streamlit as st
 import os
-
-# Set Google Cloud Project ID explicitly
-os.environ["GOOGLE_CLOUD_PROJECT"] = "speech-to-text-sample-485505"
-
 import tempfile
+
+# Set Google Cloud Project ID from environment variable
+if "GOOGLE_CLOUD_PROJECT" not in os.environ:
+    raise ValueError("GOOGLE_CLOUD_PROJECT environment variable must be set")
 from agent.speech_client import transcribe_audio
 from agent.whisper_client import transcribe_with_whisper
 from utils.audio_converter import convert_to_linear16

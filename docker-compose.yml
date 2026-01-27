@@ -7,5 +7,7 @@ services:
       - "8501:8501"
     volumes:
       - ${HOME}/.config/gcloud/application_default_credentials.json:/app/credentials/key.json
+    env_file:
+      - .env
     environment:
       - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/key.json
