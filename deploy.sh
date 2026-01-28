@@ -45,10 +45,7 @@ gcloud run deploy $SERVICE_NAME \
     --cpu 2 \
     --timeout 600 \
     --allow-unauthenticated \
-    --use-http2 \
-    --gpu 1 \
-    --gpu-type nvidia-l4 \
-    --no-cpu-throttling \
+    --no-use-http2 \
     --service-account adk-transcription-sa@$PROJECT_ID.iam.gserviceaccount.com \
     --set-env-vars GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GCS_BUCKET_NAME=$BUCKET_NAME
 

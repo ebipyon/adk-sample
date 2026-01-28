@@ -1,12 +1,10 @@
-# Use PyTorch base image with CUDA support
-FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
+# Use lightweight Python base image (CPU only)
+FROM python:3.9-slim
 
 # Install system dependencies (ffmpeg is required for pydub/audio processing)
 # Also install nginx and gettext-base (for envsubst)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    nginx \
-    gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -101,19 +101,7 @@ gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
     --member="serviceAccount:adk-transcription-sa@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
     --role="roles/speech.client"
 
-## アーキテクチャ構成 (Nginx + Streamlit)
 
-Cloud Run での大きなファイルアップロード (32MB以上) と HTTP/2 通信をサポートするため、以下のような構成をとっています。
-
-*   **Nginx (Port 8501)**:
-    *   **役割**: エントリーポイント。Cloud Run からの **HTTP/2** リクエストを受け付けます。
-    *   **理由**: Cloud Run の 32MB 制限を回避するには HTTP/2 が必須ですが、Streamlit はネイティブで HTTP/2 をサポートしていないため、Nginx が前段でこれを受け持ちます。
-*   **Streamlit (Port 8502)**:
-    *   **役割**: アプリケーションロジックとUI。Nginx から HTTP/1.1 で転送されたリクエストを処理します。
-    *   **理由**: Whisper による書き起こし処理や画面描画に専念します。
-
-**データの流れ**:
-`[User] --(HTTP/2)--> [Cloud Run] --(HTTP/2)--> [Nginx] --(HTTP/1.1)--> [Streamlit]`
 
 ## セットアップ手順
 
@@ -129,7 +117,49 @@ Cloud Run での大きなファイルアップロード (32MB以上) と HTTP/2 
 2. プロジェクトルートの `credentials/` ディレクトリに配置します。
    `credentials/key.json`
 
-## アプリケーションの実行
+## ローカル開発環境のセットアップ (venv利用)
+
+Docker を使わずに、ローカルの Python 環境 (venv) で実行する手順です。
+
+### 1. 前提条件のインストール
+*   **Python 3.9+**
+*   **ffmpeg**: 音声処理(pydub)に必要です。
+    *   Ubuntu/Debian: `sudo apt install ffmpeg`
+    *   Mac (Homebrew): `brew install ffmpeg`
+    *   Windows: 公式サイトからダウンロードしてパスを通してください。
+
+### 2. 仮想環境の作成と有効化
+
+```bash
+# 仮想環境の作成
+python3 -m venv venv
+
+# 有効化 (Mac/Linux)
+source venv/bin/activate
+
+# 有効化 (Windows PowerShell)
+# ./venv/Scripts/Activate.ps1
+```
+
+### 3. ライブラリのインストール
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. アプリケーションの実行
+
+```bash
+# 環境変数を読み込むために python-dotenv 等を使うか、export してから実行します
+export GOOGLE_CLOUD_PROJECT=your-project-id
+export GCS_BUCKET_NAME=your-bucket-name
+# (または .env ファイルの内容を適用)
+source .env
+
+streamlit run app.py
+```
+
+## アプリケーションの実行 (Docker)
 
 1.  **コンテナのビルドと起動**:
     (初回はGPU対応のベースイメージをプルするため時間がかかります)
@@ -140,9 +170,10 @@ Cloud Run での大きなファイルアップロード (32MB以上) と HTTP/2 
 2.  **アプリケーションへのアクセス**:
     [http://localhost:8501](http://localhost:8501)
 
-## Cloud Run へのデプロイ (GPU有効化済み)
+## Cloud Run へのデプロイ
 
-GPU (NVIDIA L4) を利用して Whisper を高速化するためのデプロイ用スクリプト `deploy.sh` を用意しています。
+Whisper を CPU で実行するためのデプロイ用スクリプト `deploy.sh` を用意しています。
+(※GPU割り当て確保が困難なため、現在は CPU 構成で東京リージョンにデプロイする設定になっています)
 
 ### 手順
 
@@ -150,15 +181,16 @@ GPU (NVIDIA L4) を利用して Whisper を高速化するためのデプロイ�
     ```bash
     ./deploy.sh
     ```
-    (注意: 初回デプロイ時はイメージサイズが大きいため時間がかかります)
 
 2.  デプロイ完了後、表示された URL にアクセスします。
 
-### GPU の確認
-書き起こし実行時、ログに `Using device: cuda` と表示されていれば GPU が使用されています。
+### 構成について
+*   **Region**: `asia-northeast1` (Tokyo)
+*   **Resources**: CPU 2, Memory 4Gi
+*   **Uploads**: Cloud Run の仕様により、HTTP/1.1 では 32MB までのファイルアップロードに制限されます。
 
 ---
-**Note**: 手動でデプロイする場合は、`--use-http2` (32MB制限回避) と `--gpu 1` (GPU有効化) のフラグが必須です。詳細は `deploy.sh` を参照してください。
+**Note**: ストリームリットはポート 8080 (Cloud Run デフォルト) で直接起動します。
 ```
 
 > **Note**: `YOUR_PROJECT_ID` と `YOUR_BUCKET_NAME` は実際の値に置き換えてください。
