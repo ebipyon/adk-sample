@@ -40,3 +40,4 @@ env/
 
 # Application Specific
 credentials/
+.adk/

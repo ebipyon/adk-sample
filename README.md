@@ -7,6 +7,7 @@ This repository contains sample applications and code snippets.
 | Project | Description |
 |Args|---|
 | [transcribe-streamlit](./transcribe-streamlit/) | Transcription application using Streamlit |
+| [agent-tutorial](./agent-tutorial/) | Simple agent tutorial using Google ADK |
 
 ## Getting Started
 
